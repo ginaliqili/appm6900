@@ -1,0 +1,123 @@
+---
+title: "TestData"
+author: "Gina Li"
+date: "December 9, 2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+public_data = read.csv("C:\\Users\\ginal\\Documents\\GinaLi_PublicUseFile.csv", header = TRUE)
+head(public_data)
+```
+
+```{r}
+tmax_deaths_df = data.frame("tmax_climdiv_f" = c(100, 90, 80, 70, 60, 50, 40, 30, 20, 10),
+                            "death_count_tot" = c(50, 40, 33, 30, 28, 30, 32, 35, 40, 50))
+plot(tmax_deaths_df)
+tmax_deaths_lm <- lm(death_count_tot~tmax_climdiv_f + I(tmax_climdiv_f^2), data=tmax_deaths_df)
+summary(tmax_deaths_lm)
+plot(tmax_deaths_lm)
+
+```
+
+```{r}
+# Generate death data using quadratic defined above
+public_data$death_count_tot <- ceiling(predict(tmax_deaths_lm, public_data, type="response"))
+summary(public_data$death_count_tot)
+
+# Create another date column with data type date
+public_data$date2 <- as.Date(public_data$date, format = "%m/%d/%Y")
+# Create another column for daily max dew point in climate division in deg F
+public_data$dp_climdiv_f <- (public_data$dp_climdiv_c*1.8)+3
+```
+
+```{r}
+# Subset the data to only the months April through September
+public_data_april_sep <- subset(
+  public_data, format.Date(date2, "%m")=="04" | format.Date(date2, "%m")=="05" | format.Date(date2, "%m")=="06" | format.Date(date2, "%m")=="07" | format.Date(date2, "%m")=="08" | format.Date(date2, "%m")=="09")
+```
+
+```{r}
+# create data frame that aggregates the death counts to climate division via summing
+public_data_sum <- aggregate(death_count_tot ~ date + clim_div, public_data_april_sep, sum)
+public_data_sum
+
+# create table that collapses duplicates
+public_data_climdiv <- public_data_april_sep[,c(1, 3, 6, 8, 10, 15, 16, 17, 19, 20, 23, 24, 27, 28)]
+public_data_climdiv_dedup <- unique(public_data_climdiv)
+
+# join the two tables on date and climate division
+public_data_climdiv_final <- merge(public_data_sum, public_data_climdiv_dedup, by=c("date", "clim_div"))
+
+# cast necessary columns to factors
+public_data_climdiv_final[, 'dow'] <- as.factor(public_data_climdiv_final[, 'dow'])
+```
+
+```{r}
+# Create dataframe for Northern climate division
+public_data_north <- subset(public_data_climdiv_final, clim_div=='NORTHERN')
+public_data_north
+
+# Create dataframe for Southwestern Mountain climate division
+public_data_sw <- subset(public_data_climdiv_final, clim_div=='SOUTHWESTERN MOUNTAIN')
+public_data_sw
+
+# Create dataframe for Central Mountain climate divison
+public_data_cm <- subset(public_data_climdiv_final, clim_div=='CENTRAL MOUNTAIN')
+public_data_cm
+
+# Create dataframe for Eastern Piedmont climate divison
+public_data_ep <- subset(public_data_climdiv_final, clim_div=='EASTERN PIEDMONT')
+public_data_ep
+
+# Create dataframe for Western Piedmont climate divison
+public_data_wp <- subset(public_data_climdiv_final, clim_div=='WESTERN PIEDMONT')
+public_data_wp
+
+# Create dataframe for Tidewater climate divison
+public_data_t <- subset(public_data_climdiv_final, clim_div=='TIDEWATER')
+public_data_t
+```
+
+```{r}
+library(mgcv)
+mod_n <- gam(death_count_tot ~ factor(dow) + factor(year) + s(tmax_climdiv_f) + s(rh2_climdiv) + offset(log(tot_pop_cd)), method="REML", family="quasipoisson", data=public_data_north)
+summary(mod_n)
+```
+```{r}
+gam.check(mod_n)
+```
+```{r}
+mod_sw <- gam(death_count_tot ~ factor(dow) + factor(year) + s(tmax_climdiv_f) + s(rh2_climdiv) + offset(log(tot_pop_cd)), method="REML", family="quasipoisson", data=public_data_sw)
+summary(mod_sw)
+```
+```{r}
+gam.check(mod_sw)
+```
+```{r}
+mod_cm <- gam(death_count_tot ~ factor(dow) + factor(year) + s(tmax_climdiv_f) + s(rh2_climdiv) + offset(log(tot_pop_cd)), method="REML", family="quasipoisson", data=public_data_cm)
+summary(mod_cm)
+```
+```{r}
+gam.check(mod_cm)
+```
+```{r}
+mod_ep <- gam(death_count_tot ~ factor(dow) + factor(year) + s(tmax_climdiv_f) + s(rh2_climdiv) + offset(log(tot_pop_cd)), method="REML", family="quasipoisson", data=public_data_ep)
+summary(mod_ep)
+```
+```{r}
+gam.check(mod_ep)
+```
+```{r}
+mod_wp <- gam(death_count_tot ~ factor(dow) + factor(year) + s(tmax_climdiv_f) + s(rh2_climdiv) + offset(log(tot_pop_cd)), method="REML", family="quasipoisson", data=public_data_ep)
+summary(mod_wp)
+```
+```{r}
+gam.check(mod_wp)
+```
+
+

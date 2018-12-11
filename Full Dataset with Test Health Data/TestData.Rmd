@@ -55,6 +55,7 @@ public_data_climdiv_final <- merge(public_data_sum, public_data_climdiv_dedup, b
 
 # cast necessary columns to factors
 public_data_climdiv_final[, 'dow'] <- as.factor(public_data_climdiv_final[, 'dow'])
+hist(public_data_climdiv_final$death_count_tot)
 ```
 
 ```{r}
